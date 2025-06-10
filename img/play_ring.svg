@@ -1,0 +1,8 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 50 50">
+  <!-- Black ring (outline only) -->
+  <circle cx="25" cy="25" r="22" fill="none" stroke="black" stroke-width="4" />
+
+  <!-- Play icon (triangle) -->
+  <polygon points="20,15 35,25 20,35" fill="black" />
+</svg>
