@@ -1,0 +1,22 @@
+[
+  {
+    "folder": "ncs",
+    "title": "NCS Playlist",
+    "description": "Best of NCS tracks",
+    "cover": "cover.jpg",
+    "songs": [
+      "song1.mp3",
+      "song2.mp3"
+    ]
+  },
+  {
+    "folder": "lofi",
+    "title": "Lo-Fi Beats",
+    "description": "Chill lo-fi music",
+    "cover": "cover.jpg",
+    "songs": [
+      "lofi1.mp3",
+      "lofi2.mp3"
+    ]
+  }
+]
