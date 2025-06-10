@@ -1,8 +1,7 @@
-
-
 console.log("lets write js");
-let songs;
-let currfolder;
+
+let songs = [];
+let currfolder = "";
 let currentIndex = 0;
 let currentsong = new Audio();
 
@@ -13,22 +12,9 @@ function secondsToMinutesSeconds(seconds) {
     return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
 }
 
-async function getsongs(folder) {
-    currfolder = folder;
-    let a = await fetch(`http://127.0.0.1:3000/${folder}/`);
-    let response = await a.text();
-
-    let div = document.createElement("div");
-    div.innerHTML = response;
-    let as = div.getElementsByTagName("a");
-    songs = [];
-
-    for (let index = 0; index < as.length; index++) {
-        const element = as[index];
-        if (element.href.endsWith(".mp3")) {
-            songs.push(element.href.split(`/${folder}/`)[1]);
-        }
-    }
+function loadSongs(folderData) {
+    currfolder = folderData.folder;
+    songs = folderData.songs;
 
     let songul = document.querySelector(".songlist ul");
     songul.innerHTML = ""; // Clear previous list
@@ -53,69 +39,65 @@ async function getsongs(folder) {
             playmusic(songName);
         });
     });
-
-    return songs;
 }
 
 const playmusic = (track, pause = false) => {
-    currentsong.src = `/${currfolder}/` + track;
+    currentsong.src = `songs/${currfolder}/${track}`;
     currentIndex = songs.indexOf(track);
 
     if (!pause) {
         currentsong.play().catch(e => console.error("Audio play failed:", e));
         play.src = "img/pause.svg";
     }
+
     document.querySelector(".songinfo").innerHTML = decodeURI(track);
     document.querySelector(".songtime").innerHTML = "00:00 / 00:00";
 };
 
 async function displayalbums() {
-    let a = await fetch("http://127.0.0.1:3000/songs/");
-    let response = await a.text();
+    try {
+        const res = await fetch("songs/songs.json");
+        const data = await res.json();
 
-    let div = document.createElement("div");
-    div.innerHTML = response;
-    let anchors = div.getElementsByTagName("a");
-    let cardcontainer = document.querySelector(".cardcontainer");
-    cardcontainer.innerHTML = ""; // Clear existing cards
+        let cardcontainer = document.querySelector(".cardcontainer");
+        cardcontainer.innerHTML = ""; // Clear existing cards
 
-    for (let e of anchors) {
-        if (e.href.includes("/songs/")) {
-            let folder = e.href.split("/songs/")[1].replace("/", "");
-
-            try {
-                let meta = await fetch(`http://127.0.0.1:3000/songs/${folder}/info.json`);
-                let info = await meta.json();
-
-                cardcontainer.innerHTML += `
-                    <div data-folder="${folder}" class="card">
-                        <div class="play">
-                            <img src="img/play-solid-standard.svg" alt="">
-                        </div>
-                        <img src="/songs/${folder}/cover.jpg" alt="">
-                        <h2>${info.title}</h2>
-                        <p>${info.description}</p>
-                    </div>`;
-            } catch (err) {
-                console.warn(`Failed to load album info for ${folder}`);
-            }
+        for (let folderData of data) {
+            cardcontainer.innerHTML += `
+                <div data-folder='${JSON.stringify(folderData)}' class="card">
+                    <div class="play">
+                        <img src="img/play-solid-standard.svg" alt="">
+                    </div>
+                    <img src="songs/${folderData.folder}/${folderData.cover}" alt="">
+                    <h2>${folderData.title}</h2>
+                    <p>${folderData.description}</p>
+                </div>`;
         }
-    }
 
-    // Rebind card click events after rendering
-    Array.from(document.getElementsByClassName("card")).forEach(card => {
-        card.addEventListener("click", async () => {
-            const folder = card.dataset.folder;
-            await getsongs(`songs/${folder}`);
-            playmusic(songs[0]);
+        // Add event listeners
+        document.querySelectorAll(".card").forEach(card => {
+            card.addEventListener("click", () => {
+                const folderData = JSON.parse(card.getAttribute("data-folder"));
+                loadSongs(folderData);
+                playmusic(songs[0]);
+            });
         });
-    });
+
+    } catch (err) {
+        console.error("Failed to load albums:", err);
+    }
 }
 
 async function main() {
     await displayalbums();
-    await getsongs("songs/ncs");
-    playmusic(songs[0], true);
+
+    // Default album (optional)
+    const defaultAlbumRes = await fetch("songs/songs.json");
+    const albums = await defaultAlbumRes.json();
+    if (albums.length > 0) {
+        loadSongs(albums[0]);
+        playmusic(songs[0], true);
+    }
 
     play.addEventListener("click", () => {
         if (currentsong.paused) {
@@ -165,19 +147,16 @@ async function main() {
     document.querySelector(".range input").addEventListener("change", (e) => {
         currentsong.volume = parseInt(e.target.value) / 100;
     });
-    //add event listener to mute the track
-    document.querySelector(".vol>img").addEventListener("click",e=>{
-        if(e.target.src.includes("volume.svg")){
-            e.target.src=e.target.src.replace("volume.svg","mute.svg")
-            // currentsong.volume=0;
-            document.querySelector(".range").getElementsByTagName("input")[0].value=0;
+
+    document.querySelector(".vol>img").addEventListener("click", e => {
+        if (e.target.src.includes("volume.svg")) {
+            e.target.src = e.target.src.replace("volume.svg", "mute.svg");
+            document.querySelector(".range").getElementsByTagName("input")[0].value = 0;
+        } else {
+            e.target.src = e.target.src.replace("mute.svg", "volume.svg");
+            document.querySelector(".range").getElementsByTagName("input")[0].value = 20;
         }
-        else{
-            e.target.src=e.target.src.replace("mute.svg","volume.svg")
-            // currentsong.volume=.1;
-            document.querySelector(".range").getElementsByTagName("input")[0].value=20;
-        }
-    })
+    });
 }
 
 main();
